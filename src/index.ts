@@ -22,13 +22,22 @@ app.use((req: Request, res: Response, next: () => void) => {
 });
 
 
-app.get('/read', (req: Request, res: Response) => {
-  let db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-  res.json(db.submissions);
-});
+function validateSubmission(req: Request, res: Response, next: () => void) {
+  const { name, email, phone, github_link, stopwatch_time } = req.body;
 
+  if (!name || !email || !phone || !github_link || !stopwatch_time) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
 
-app.post('/submit', (req: Request, res: Response) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+
+  next();
+}
+
+app.post('/submit', validateSubmission, (req: Request, res: Response) => {
   const { name, email, phone, github_link, stopwatch_time } = req.body;
   const newSubmission = { id: uuidv4(), name, email, phone, github_link, stopwatch_time };
 
@@ -39,6 +48,10 @@ app.post('/submit', (req: Request, res: Response) => {
   res.status(201).json(newSubmission);
 });
 
+app.get('/read', (req: Request, res: Response) => {
+  let db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+  res.json(db.submissions);
+});
 
 app.put('/update/:id', (req: Request, res: Response) => {
   const id = req.params.id;
@@ -60,7 +73,6 @@ app.put('/update/:id', (req: Request, res: Response) => {
     res.status(404).json({ error: 'Submission not found' });
   }
 });
-
 
 app.delete('/delete/:id', (req: Request, res: Response) => {
   const id = req.params.id;

@@ -16,14 +16,17 @@ function initializeDatabase() {
   }
 }
 
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: () => void) => {
   initializeDatabase();
   next();
 });
 
-app.get('/ping', (req: Request, res: Response) => {
-  res.json(true);
+
+app.get('/read', (req: Request, res: Response) => {
+  let db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+  res.json(db.submissions);
 });
+
 
 app.post('/submit', (req: Request, res: Response) => {
   const { name, email, phone, github_link, stopwatch_time } = req.body;
@@ -36,15 +39,33 @@ app.post('/submit', (req: Request, res: Response) => {
   res.status(201).json(newSubmission);
 });
 
-app.get('/read', (req: Request, res: Response) => {
+
+app.put('/update/:id', (req: Request, res: Response) => {
+  const id = req.params.id;
+  const { name, email, phone, github_link, stopwatch_time } = req.body;
+
   let db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-  res.json(db.submissions);
+  const index = db.submissions.findIndex((submission: any) => submission.id === id);
+
+  if (index !== -1) {
+    db.submissions[index].name = name;
+    db.submissions[index].email = email;
+    db.submissions[index].phone = phone;
+    db.submissions[index].github_link = github_link;
+    db.submissions[index].stopwatch_time = stopwatch_time;
+
+    fs.writeFileSync(DB_FILE, JSON.stringify(db));
+    res.status(200).json({ message: 'Submission updated successfully' });
+  } else {
+    res.status(404).json({ error: 'Submission not found' });
+  }
 });
+
 
 app.delete('/delete/:id', (req: Request, res: Response) => {
   const id = req.params.id;
+
   let db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-  
   const newSubmissions = db.submissions.filter((submission: any) => submission.id !== id);
 
   if (newSubmissions.length === db.submissions.length) {

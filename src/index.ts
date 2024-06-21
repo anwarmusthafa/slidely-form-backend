@@ -48,8 +48,19 @@ app.post('/submit', validateSubmission, (req: Request, res: Response) => {
 });
 
 app.get('/read', (req: Request, res: Response) => {
+  const index = parseInt(req.query.index as string);
+
+  if (isNaN(index) || index < 0) {
+    return res.status(400).json({ error: 'Index query parameter is required and must be a non-negative integer' });
+  }
+
   let db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
-  res.json(db.submissions);
+
+  if (index >= db.submissions.length) {
+    return res.status(404).json({ error: 'Submission not found' });
+  }
+
+  res.json(db.submissions[index]);
 });
 
 app.put('/update/:id', (req: Request, res: Response) => {

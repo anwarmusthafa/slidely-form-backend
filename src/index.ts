@@ -21,7 +21,6 @@ app.use((req: Request, res: Response, next: () => void) => {
   next();
 });
 
-
 function validateSubmission(req: Request, res: Response, next: () => void) {
   const { name, email, phone, github_link, stopwatch_time } = req.body;
 
@@ -87,6 +86,24 @@ app.delete('/delete/:id', (req: Request, res: Response) => {
   db.submissions = newSubmissions;
   fs.writeFileSync(DB_FILE, JSON.stringify(db));
   res.status(200).json({ message: 'Submission deleted successfully' });
+});
+
+
+app.get('/search', (req: Request, res: Response) => {
+  const email = req.query.email as string;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email query parameter is required' });
+  }
+
+  let db = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
+  const results = db.submissions.filter((submission: any) => submission.email === email);
+
+  if (results.length === 0) {
+    return res.status(404).json({ error: 'No submissions found for the provided email' });
+  }
+
+  res.status(200).json(results);
 });
 
 app.listen(PORT, () => {
